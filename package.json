@@ -1,0 +1,14 @@
+{
+  "name": "botina-slack",
+  "version": "1.0.0",
+  "description": "bot for slack",
+  "main": "src/index.ts",
+  "author": "Danilo Assis",
+  "license": "MIT",
+  "dependencies": {
+    "@slack/bolt": "^3.6.0"
+  },
+  "scripts": {
+    "start": "nodemon -T src/index.ts"
+  }
+}
