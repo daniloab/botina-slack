@@ -6,7 +6,8 @@
   "author": "Danilo Assis",
   "license": "MIT",
   "dependencies": {
-    "@slack/bolt": "^3.6.0"
+    "@slack/bolt": "^3.6.0",
+    "isomorphic-fetch": "^3.0.0"
   },
   "scripts": {
     "start": "nodemon -T src/index.ts"
