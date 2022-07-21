@@ -1,4 +1,9 @@
+import { apiWithLog } from "./apiWithLog";
+
+require("isomorphic-fetch");
 import { App } from "@slack/bolt";
+import checkout from "../../../nextjs-commerce/site/pages/api/checkout";
+import {debugConsole} from "./debugConsole";
 
 const app = new App({
   token: "xoxb-3744551104532-3793906652642-7eqtTUIaeP5i2M1rjs0U9jiJ",
@@ -8,8 +13,26 @@ const app = new App({
   socketMode: true,
 });
 
+const generalChannelId = "C03MMFU7PAS";
+
 // Listens to incoming messages that contain "hello"
 app.message("hello", async ({ message, say }) => {
+  const response = await apiWithLog(
+    "https://slack.com/api/conversations.history",
+    {
+      headers: {
+        Authorization:
+          "Bearer xoxb-3744551104532-3793906652642-7eqtTUIaeP5i2M1rjs0U9jiJ",
+      },
+    }
+  );
+
+  const result = await app.client.conversations.history({
+    channel: generalChannelId,
+  });
+
+  debugConsole({ result });
+
   // say() sends a message to the channel where the event was triggered
   await say({
     blocks: [
@@ -31,6 +54,12 @@ app.message("hello", async ({ message, say }) => {
     ],
     text: `Hey there <@${message.user}>!`,
   });
+});
+
+app.message("Lembrete", async ({ message, say }) => {
+  // const result = await app.client.conversations.history();
+
+  debugConsole({ message });
 });
 
 (async () => {
