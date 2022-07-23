@@ -1,9 +1,13 @@
-import { apiWithLog } from "./apiWithLog";
+import { apiWithLog } from "./core/apiWithLog";
 
 require("isomorphic-fetch");
 import { App } from "@slack/bolt";
-import checkout from "../../../nextjs-commerce/site/pages/api/checkout";
-import {debugConsole} from "./debugConsole";
+import { debugConsole } from "./core/debugConsole";
+
+import cron from "node-cron";
+import { conversationReplyGet } from "./conversationReplyGet";
+import { conversationMessagePost } from "./conversationMessagePost";
+import {userGet} from "./userGet";
 
 const app = new App({
   token: "xoxb-3744551104532-3793906652642-7eqtTUIaeP5i2M1rjs0U9jiJ",
@@ -14,56 +18,60 @@ const app = new App({
 });
 
 const generalChannelId = "C03MMFU7PAS";
-
-// Listens to incoming messages that contain "hello"
-app.message("hello", async ({ message, say }) => {
-  const response = await apiWithLog(
-    "https://slack.com/api/conversations.history",
-    {
-      headers: {
-        Authorization:
-          "Bearer xoxb-3744551104532-3793906652642-7eqtTUIaeP5i2M1rjs0U9jiJ",
-      },
-    }
-  );
-
-  const result = await app.client.conversations.history({
-    channel: generalChannelId,
-  });
-
-  debugConsole({ result });
-
-  // say() sends a message to the channel where the event was triggered
-  await say({
-    blocks: [
-      {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: `Hey there <@${message.user}>!`,
-        },
-        accessory: {
-          type: "button",
-          text: {
-            type: "plain_text",
-            text: "Click Me",
-          },
-          action_id: "button_click",
-        },
-      },
-    ],
-    text: `Hey there <@${message.user}>!`,
-  });
-});
+const myUserId = "U03NHSA09LY";
 
 app.message("Lembrete", async ({ message, say }) => {
-  // const result = await app.client.conversations.history();
+  await conversationMessagePost(
+    app,
+    generalChannelId,
+    message?.thread_ts,
+    "Hey @Danilo Assis, answer the thread"
+  );
+});
 
-  debugConsole({ message });
+app.message("answer", async ({ message, say }) => {
+  await conversationMessagePost(
+    app,
+    generalChannelId,
+    message?.thread_ts,
+    "Hey @Danilo Assis, answer the thread"
+  );
+});
+
+app.message("find", async ({ message, say }) => {
+  await conversationReplyGet(app, generalChannelId, message.event_ts);
+});
+
+app.message("timeout", async ({ message, say }) => {
+  console.log({message})
+  setTimeout(async () => {
+    await conversationMessagePost(
+        app,
+        generalChannelId,
+        message?.event_ts,
+        "Hey @Danilo Assis, this is a timeout message"
+    );
+  }, 5000);
+});
+
+app.message('user', async ({ message, }) => {
+  await userGet(app, myUserId);
+})
+
+app.message("cron", async ({ message, say }) => {
+  cron.schedule("* * * * *", () => {
+    setTimeout(async () => {
+      await conversationMessagePost(
+          app,
+          generalChannelId,
+          message?.event_ts,
+          "Hey @Danilo Assis, this is a cron message every minute"
+      );
+    }, 5000);
+  });
 });
 
 (async () => {
-  // Start your app
   await app.start(process.env.PORT || 3000);
 
   console.log("⚡️ Bolt app is running!");
