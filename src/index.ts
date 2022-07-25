@@ -1,19 +1,26 @@
-import { apiWithLog } from "./core/apiWithLog";
-
 require("isomorphic-fetch");
 import { App } from "@slack/bolt";
-import { debugConsole } from "./core/debugConsole";
 
 import cron from "node-cron";
 import { conversationReplyGet } from "./conversationReplyGet";
 import { conversationMessagePost } from "./conversationMessagePost";
-import {userGet} from "./userGet";
+import { userGet } from "./userGet";
+
+import dotenvSafe from "dotenv-safe";
+import path from "path";
+import { getDiff } from "./git/getDiff";
+
+const root = path.join.bind(this, __dirname, "../");
+
+dotenvSafe.config({
+  path: root(".env"),
+  sample: root(".env.example"),
+});
 
 const app = new App({
-  token: "xoxb-3744551104532-3793906652642-7eqtTUIaeP5i2M1rjs0U9jiJ",
-  appToken:
-    "xapp-1-A03P5924S6S-3817843134784-a3e5fa09185ffda44894c9734c8d6df06116ccb415747f3719b5e44375a578b2",
-  signingSecret: "ec0193816264fe9af7a13d4a7c4dd4b7",
+  token: process.env.TOKEN,
+  appToken: process.env.APP_TOKEN,
+  signingSecret: process.env.SIGNING_SECRET_TOKEN,
   socketMode: true,
 });
 
@@ -43,36 +50,51 @@ app.message("find", async ({ message, say }) => {
 });
 
 app.message("timeout", async ({ message, say }) => {
-  console.log({message})
   setTimeout(async () => {
     await conversationMessagePost(
-        app,
-        generalChannelId,
-        message?.event_ts,
-        "Hey @Danilo Assis, this is a timeout message"
+      app,
+      generalChannelId,
+      message?.event_ts,
+      "Hey @Danilo Assis, this is a timeout message"
     );
   }, 5000);
 });
 
-app.message('user', async ({ message, }) => {
+app.message("user", async ({ message }) => {
   await userGet(app, myUserId);
-})
+});
 
 app.message("cron", async ({ message, say }) => {
   cron.schedule("* * * * *", () => {
     setTimeout(async () => {
       await conversationMessagePost(
-          app,
-          generalChannelId,
-          message?.event_ts,
-          "Hey @Danilo Assis, this is a cron message every minute"
+        app,
+        generalChannelId,
+        message?.event_ts,
+        "Hey @Danilo Assis, this is a cron message every minute"
       );
     }, 5000);
   });
 });
 
+app.message("diff", async ({ message, say }) => {
+  if (!process.env.GITHUB_TOKEN) {
+    await conversationMessagePost(
+        app,
+        generalChannelId,
+        message?.event_ts,
+        "You do not have the github token configured"
+    );
+    return;
+  }
+
+  await getDiff(say, process.env.OWNER, process.env.REPO);
+});
+
 (async () => {
   await app.start(process.env.PORT || 3000);
 
-  console.log("⚡️ Bolt app is running!");
+  console.log("⚡️ BOTina app is running!");
 })();
+
+
